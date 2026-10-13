@@ -182,10 +182,10 @@ export default function MenuManagementPage() {
     return undefined;
   };
 
-  const handleMove = async (targetParentId: number | null) => {
-    if (draggedId === null || draggedId === targetParentId) return;
+  const handleMove = async (draggedMenuId: number, targetParentId: number | null) => {
+    if (draggedMenuId === targetParentId) return;
 
-    const draggedNode = findNodeById(menus, draggedId);
+    const draggedNode = findNodeById(menus, draggedMenuId);
     if (draggedNode) {
       const descendantIds = collectDescendantIds(draggedNode.children || []);
       if (descendantIds.includes(targetParentId ?? -1)) {
@@ -195,7 +195,7 @@ export default function MenuManagementPage() {
     }
 
     try {
-      const res = await fetch(`${API_URL}/${draggedId}/move`, {
+      const res = await fetch(`${API_URL}/${draggedMenuId}/move`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ parentId: targetParentId }),
@@ -235,9 +235,9 @@ export default function MenuManagementPage() {
           key={node.id}
           className="select-none"
           draggable
-          onDragStart={() => setDraggedId(node.id)}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={() => handleMove(node.id)}
+          onDragStart={(e) => { e.stopPropagation(); e.dataTransfer.setData('text/plain', String(node.id)); setDraggedId(node.id); }}
+                    onDragOver={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                    onDrop={(e) => { e.stopPropagation(); e.preventDefault(); handleMove(Number(e.dataTransfer.getData('text/plain')), node.id); }}
           onDragEnd={() => setDraggedId(null)}
         >
           <div
