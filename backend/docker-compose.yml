@@ -1,0 +1,72 @@
+version: '3.9'
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: stk_menu_mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-stk_menu}
+      MYSQL_USER: ${DB_USER:-stk_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-stk_password}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./migrations/001_create_menus_table.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    command:
+      --innodb-buffer-pool-size=128M
+      --max-connections=100
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER:-stk_user}", "-p${DB_PASSWORD:-stk_password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  stk-menu-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stk_menu_api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-stk_user}
+      DB_PASSWORD: ${DB_PASSWORD:-stk_password}
+      DB_NAME: ${DB_NAME:-stk_menu}
+      DB_SYNCHRONIZE: false
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - stk-network
+
+  stk-menu-ui:
+    build:
+      context: ../my-porto
+      dockerfile: Dockerfile
+    container_name: stk_menu_ui
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:3000/api
+    depends_on:
+      - stk-menu-api
+    networks:
+      - stk-network
+
+networks:
+  stk-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
