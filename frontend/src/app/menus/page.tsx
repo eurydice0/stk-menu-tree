@@ -58,22 +58,22 @@ export default function MenuManagementPage() {
     const API_URL = API_BASE + '/api/menus';
 
     const fetchMenus = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(API_URL);
-        if (!res.ok) throw new Error('Failed to fetch menus from server');
-        const data = await res.json();
-        setMenus(data);
-        // Auto expand root items initially
-        const rootIds = new Set<number>(data.map((m: MenuNode) => m.id));
-        setExpandedIds(rootIds);
-      } catch (err: any) {
-        setError(err.message || 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(API_URL);
+      if (!res.ok) throw new Error('Failed to fetch menus from server');
+      const data = await res.json();
+            setMenus(data);
+            // Auto expand root items initially
+      const rootIds = new Set<number>(data.map((m: MenuNode) => m.id));
+      setExpandedIds(rootIds);
+    } catch (err: any) {
+      setError(err.message || 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchMenus();
@@ -107,6 +107,7 @@ export default function MenuManagementPage() {
 
   const handleOpenCreate = (parentId: number | null = null) => {
     setModalMode('create');
+    setSelectedMenu(null);
     setFormData({
       name: '',
       url: '/',
@@ -222,95 +223,106 @@ export default function MenuManagementPage() {
     }, []);
   };
 
-  const displayedMenus = filterTree(menus, searchQuery);
+  const displayedMenus = menus;
 
   const renderTreeNodes = (nodes: MenuNode[], level = 0) => {
     return nodes.map((node) => {
       const hasChildren = node.children && node.children.length > 0;
-      const isExpanded = expandedIds.has(node.id);
-      const isSelected = selectedMenu?.id === node.id;
+        const isExpanded = expandedIds.has(node.id);
+        const isSelected = selectedMenu?.id === node.id;
 
-      return (
-        <div
-          key={node.id}
-          className="select-none"
-          draggable
-          onDragStart={(e) => { e.stopPropagation(); e.dataTransfer.setData('text/plain', String(node.id)); setDraggedId(node.id); }}
-                    onDragOver={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                    onDrop={(e) => { e.stopPropagation(); e.preventDefault(); handleMove(Number(e.dataTransfer.getData('text/plain')), node.id); }}
-          onDragEnd={() => setDraggedId(null)}
-        >
+        return (
           <div
-            className={`flex items-center justify-between py-1.5 px-2 rounded-md cursor-move transition-colors ${
-              isSelected ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
-            }`}
-            style={{ paddingLeft: `${level * 1.25 + 0.5}rem` }}
-            onClick={() => setSelectedMenu(node)}
+            key={node.id}
+            className="select-none"
+            draggable
+            onDragStart={(e) => {
+              e.stopPropagation();
+              e.dataTransfer.setData('text/plain', String(node.id));
+              setDraggedId(node.id);
+            }}
+            onDragOver={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+            onDrop={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              handleMove(Number(e.dataTransfer.getData('text/plain')), node.id);
+            }}
+            onDragEnd={() => setDraggedId(null)}
           >
-            <div className="flex items-center space-x-2 truncate">
-              {hasChildren ? (
+            <div
+              className={`flex items-center justify-between py-1.5 px-2 rounded-md cursor-move transition-colors ${
+                isSelected ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
+              }`}
+              style={{ paddingLeft: `${level * 1.25 + 0.5}rem` }}
+              onClick={() => setSelectedMenu(node)}
+            >
+              <div className="flex items-center space-x-2 truncate">
+                {hasChildren ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleExpand(node.id);
+                    }}
+                    className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
+                  >
+                    {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </button>
+                ) : (
+                  <span className="w-4" />
+                )}
+                {hasChildren ? <Folder size={16} className="text-blue-400 shrink-0" /> : <FileText size={16} className="text-slate-400 shrink-0" />}
+                <span className="text-sm font-medium truncate">{node.name}</span>
+                <span className="text-xs opacity-60 truncate">({node.url})</span>
+              </div>
+
+              <div className="flex items-center space-x-1 shrink-0">
                 <button
                   type="button"
+                  title="Add Child Menu"
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleExpand(node.id);
+                    handleOpenCreate(node.id);
                   }}
-                  className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
+                  className="p-1 rounded hover:bg-blue-500 hover:text-white"
                 >
-                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  <Plus size={14} />
                 </button>
-              ) : (
-                <span className="w-4" />
-              )}
-              {hasChildren ? <Folder size={16} className="text-blue-400 shrink-0" /> : <FileText size={16} className="text-slate-400 shrink-0" />}
-              <span className="text-sm font-medium truncate">{node.name}</span>
-              <span className="text-xs opacity-60 truncate">({node.url})</span>
+                <button
+                  type="button"
+                  title="Edit Menu"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenEdit(node);
+                  }}
+                  className="p-1 rounded hover:bg-blue-500 hover:text-white"
+                >
+                  <Edit size={14} />
+                </button>
+                <button
+                  type="button"
+                  title="Delete Menu"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteConfirmId(node.id);
+                  }}
+                  className="p-1 rounded hover:bg-red-500 hover:text-white"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center space-x-1 shrink-0">
-              <button
-                type="button"
-                title="Add Child Menu"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenCreate(node.id);
-                }}
-                className="p-1 rounded hover:bg-blue-500 hover:text-white"
-              >
-                <Plus size={14} />
-              </button>
-              <button
-                type="button"
-                title="Edit Menu"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenEdit(node);
-                }}
-                className="p-1 rounded hover:bg-blue-500 hover:text-white"
-              >
-                <Edit size={14} />
-              </button>
-              <button
-                type="button"
-                title="Delete Menu"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeleteConfirmId(node.id);
-                }}
-                className="p-1 rounded hover:bg-red-500 hover:text-white"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
+            {hasChildren && isExpanded && (
+              <div>{renderTreeNodes(node.children!, level + 1)}</div>
+            )}
           </div>
-
-          {hasChildren && isExpanded && (
-            <div>{renderTreeNodes(node.children!, level + 1)}</div>
-          )}
-        </div>
-      );
-    });
-  };
+        );
+      });
+    };
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 font-sans overflow-hidden">

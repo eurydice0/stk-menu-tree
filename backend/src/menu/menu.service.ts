@@ -12,6 +12,11 @@ export class MenuService {
   ) { }
 
   async create(createDto: CreateMenuDto): Promise<MenuResponseDto> {
+    // Force parentId to null if falsy
+    if (!createDto.parentId) {
+      createDto.parentId = null;
+    }
+
     // Validate parent exists if parentId is provided
     if (createDto.parentId !== null) {
       const parent = await this.menuRepository.findOne({
@@ -50,6 +55,11 @@ export class MenuService {
     const menu = await this.menuRepository.findOne({ where: { id } });
     if (!menu) {
       throw new NotFoundException(`Menu with ID ${id} not found`);
+    }
+
+    // Force parentId to null if falsy
+    if (!updateDto.parentId) {
+      updateDto.parentId = null;
     }
 
     // Validate parent exists
@@ -105,6 +115,11 @@ export class MenuService {
       throw new NotFoundException(`Menu with ID ${id} not found`);
     }
 
+    // Force parentId to null if falsy
+    if (!moveDto.parentId) {
+      moveDto.parentId = null;
+    }
+
     // Validate parent exists
     if (moveDto.parentId !== null) {
       const parent = await this.menuRepository.findOne({
@@ -155,32 +170,31 @@ export class MenuService {
   }
 
   private buildTree(menus: Menu[]): MenuResponseDto[] {
-    const menuMap = new Map<number, MenuResponseDto>();
-    const roots: MenuResponseDto[] = [];
+      const menuMap = new Map<number, MenuResponseDto>();
+      const roots: MenuResponseDto[] = [];
 
-    // Build map of all menus
-    for (const menu of menus) {
-      menuMap.set(menu.id, this.toResponseDto(menu));
-    }
-
-    // Build parent-child relationships
-    for (const menu of menus) {
-      const dto = menuMap.get(menu.id)!;
-      if (menu.parentId !== null) {
-        const parent = menuMap.get(menu.parentId);
-        if (parent) {
-          if (!parent.children) {
-            parent.children = [];
-          }
-          parent.children.push(dto);
-          parent.children.sort((a, b) => a.position - b.position);
-        }
-      } else {
-        roots.push(dto);
+      // Build map of all menus
+      for (const menu of menus) {
+        menuMap.set(menu.id, this.toResponseDto(menu));
       }
+
+      // Build parent-child relationships
+      for (const menu of menus) {
+        const dto = menuMap.get(menu.id)!;
+        if (menu.parentId !== null) {
+          const parent = menuMap.get(menu.parentId);
+          if (parent) {
+            if (!parent.children) {
+              parent.children = [];
+            }
+            parent.children.push(dto);
+            parent.children.sort((a, b) => a.position - b.position);
+          }
+        } else {
+          roots.push(dto);
+        }
+      }
+
+      return roots.sort((a, b) => a.position - b.position);
     }
-
-    return roots.sort((a, b) => a.position - b.position);
   }
-
-}
