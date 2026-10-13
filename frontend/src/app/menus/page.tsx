@@ -51,29 +51,29 @@ export default function MenuManagementPage() {
     position: 0,
   });
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
- const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [draggedId, setDraggedId] = useState<number | null>(null);
 
-  // API Base URL (default to backend on port 3000 or env)
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
- const API_URL = API_BASE + '/api/menus';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const API_URL = API_BASE + '/api/menus';
 
-  const fetchMenus = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(API_URL);
-      if (!res.ok) throw new Error('Failed to fetch menus from server');
-      const data = await res.json();
-      setMenus(data);
-      // Auto expand root items initially
-      const rootIds = new Set<number>(data.map((m: MenuNode) => m.id));
-      setExpandedIds(rootIds);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchMenus = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(API_URL);
+        if (!res.ok) throw new Error('Failed to fetch menus from server');
+        const data = await res.json();
+        setMenus(data);
+        // Auto expand root items initially
+        const rootIds = new Set<number>(data.map((m: MenuNode) => m.id));
+        setExpandedIds(rootIds);
+      } catch (err: any) {
+        setError(err.message || 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
 
   useEffect(() => {
     fetchMenus();
@@ -167,6 +167,47 @@ export default function MenuManagementPage() {
     }
   };
 
+  const collectDescendantIds = (nodes: MenuNode[]): number[] => {
+    return nodes.flatMap((n) => [n.id, ...(n.children ? collectDescendantIds(n.children) : [])]);
+  };
+
+  const findNodeById = (nodes: MenuNode[], id: number): MenuNode | undefined => {
+    for (const n of nodes) {
+      if (n.id === id) return n;
+      if (n.children) {
+        const found = findNodeById(n.children, id);
+        if (found) return found;
+      }
+    }
+    return undefined;
+  };
+
+  const handleMove = async (targetParentId: number | null) => {
+    if (draggedId === null || draggedId === targetParentId) return;
+
+    const draggedNode = findNodeById(menus, draggedId);
+    if (draggedNode) {
+      const descendantIds = collectDescendantIds(draggedNode.children || []);
+      if (descendantIds.includes(targetParentId ?? -1)) {
+        alert('Cannot move a menu item into its own descendant.');
+        return;
+      }
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/${draggedId}/move`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parentId: targetParentId }),
+      });
+      if (!res.ok) throw new Error('Failed to move menu');
+      setDraggedId(null);
+      fetchMenus();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   // Filter tree based on search query
   const filterTree = (nodes: MenuNode[], query: string): MenuNode[] => {
     if (!query) return nodes;
@@ -190,9 +231,17 @@ export default function MenuManagementPage() {
       const isSelected = selectedMenu?.id === node.id;
 
       return (
-        <div key={node.id} className="select-none">
+        <div
+          key={node.id}
+          className="select-none"
+          draggable
+          onDragStart={() => setDraggedId(node.id)}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={() => handleMove(node.id)}
+          onDragEnd={() => setDraggedId(null)}
+        >
           <div
-            className={`flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer transition-colors ${
+            className={`flex items-center justify-between py-1.5 px-2 rounded-md cursor-move transition-colors ${
               isSelected ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200'
             }`}
             style={{ paddingLeft: `${level * 1.25 + 0.5}rem` }}
