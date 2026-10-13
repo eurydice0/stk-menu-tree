@@ -37,7 +37,6 @@ async function seed() {
     await menuRepo.save(entity);
   }
 
-  console.log('Seed data created successfully!');
   await dataSource.destroy();
 }
 
