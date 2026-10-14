@@ -2,6 +2,12 @@
 
 Fullstack hierarchical menu management system. Technical test for Solusi Teknologi Kreatif.
 
+## Prerequisites
+
+- Node.js >= 18
+- MySQL 8.0+ (or Docker)
+- npm
+
 ## Tech Stack
 
 - **Backend:** NestJS, TypeORM, MySQL, Swagger
@@ -16,41 +22,73 @@ stk-menu-tree/
 └── docs/       # Screenshots and demo assets
 ```
 
-## Quickstart
+## Setup Instructions
 
 ### 1. Database
 
-Create MySQL database and run migration:
-
-```sql
-CREATE DATABASE stk_menu;
-```
+Create a MySQL database, then configure the backend:
 
 ```bash
-mysql -u root -p stk_menu < backend/migrations/001_create_menus_table.sql
+cd backend
+cp .env.example .env
+```
+
+Edit `.env` to match your MySQL credentials:
+
+```ini
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=stk_menu
+DB_SYNCHRONIZE=true
 ```
 
 ### 2. Backend
 
 ```bash
 cd backend
-cp .env.example .env
 npm install
 npm run start:dev
 ```
 
-Swagger UI: `http://localhost:3001/api`
+Backend runs on **http://localhost:3001**
+Swagger API docs: **http://localhost:3001/api**
 
 ### 3. Frontend
 
 ```bash
 cd frontend
 cp .env.example .env.local
+```
+
+The frontend `.env.local` points to `http://localhost:3001`. Now install and run:
+
+```bash
+cd frontend
 npm install
 npm run dev
 ```
 
-Open `http://localhost:3000/menus`
+Frontend runs on **http://localhost:3000/menus**
+
+### 4. Database Migration (Optional)
+
+If `DB_SYNCHRONIZE=true`, the database schema is created automatically. To run the migration manually:
+
+```bash
+mysql -u root -p stk_menu < backend/migrations/001_create_menus_table.sql
+```
+
+## Docker Compose (Alternative)
+
+To run MySQL in Docker:
+
+```bash
+docker-compose up -d
+```
+
+Then start the backend and frontend using `npm run start:dev` and `npm run dev`.
 
 ## API Endpoints
 
