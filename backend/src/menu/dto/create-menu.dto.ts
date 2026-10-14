@@ -46,7 +46,8 @@ export class UpdateMenuDto {
 }
 
 export class MoveMenuDto {
-  @ApiProperty({ example: 5, description: 'New parent menu ID' })
+  @ApiPropertyOptional({ example: null, description: 'New parent menu ID (null for root)' })
+  @IsOptional()
   @IsNumber()
   parentId: number | null;
 
