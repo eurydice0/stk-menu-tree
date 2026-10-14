@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsUrl, IsNumber, IsOptional, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateMenuDto {
@@ -8,7 +8,7 @@ export class CreateMenuDto {
   name: string;
 
   @ApiProperty({ example: '/dashboard', description: 'Menu URL/route' })
-  @IsUrl()
+  @IsString()
   @IsNotEmpty()
   url: string;
 
@@ -30,7 +30,7 @@ export class UpdateMenuDto {
   name: string;
 
   @ApiProperty({ example: '/dashboard', description: 'Menu URL/route' })
-  @IsUrl()
+  @IsString()
   @IsNotEmpty()
   url: string;
 
