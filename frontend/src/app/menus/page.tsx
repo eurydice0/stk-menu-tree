@@ -223,7 +223,7 @@ export default function MenuManagementPage() {
     }, []);
   };
 
-  const displayedMenus = menus;
+  const displayedMenus = filterTree(menus, searchQuery);
 
   const renderTreeNodes = (nodes: MenuNode[], level = 0) => {
     return nodes.map((node) => {
